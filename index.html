@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="sv" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Ta Befäl – interaktiv kurs i tolv moduler efter bokserien av Torbjörn Holkner. Svenska, Deutsch, English." />
+    <meta name="theme-color" content="#0e4c5a" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <title>Ta Befäl</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <script>
+      // Apply theme before first paint to avoid a flash (the URL is the source of truth).
+      (function () {
+        var p = new URLSearchParams(location.search);
+        if (p.get('theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <noscript>Ta Befäl kräver JavaScript. · Ta Befäl benötigt JavaScript. · Ta Befäl requires JavaScript.</noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
