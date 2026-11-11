@@ -35,7 +35,13 @@ export const state: AppState = { lang: 'sv', theme: 'light', embedded: false, pa
 
 export function syncStateFromURL(): void {
   const params = new URLSearchParams(window.location.search);
-  const lang = params.get('lang') as Lang | null;
+  // ?lang=xx oder Kurzform ?en / ?se (se = Schwedisch)
+  let lang = params.get('lang') as Lang | null;
+  if (lang === ('se' as Lang)) lang = 'sv' as Lang;
+  if (!lang) {
+    if (params.has('en')) lang = 'en' as Lang;
+    else if (params.has('se')) lang = 'sv' as Lang;
+  }
   const theme = params.get('theme');
   state.lang = lang && LANGS.includes(lang) ? lang : browserLang();
   state.theme = theme === 'dark' ? 'dark' : 'light';
