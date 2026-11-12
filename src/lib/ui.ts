@@ -41,9 +41,10 @@ export function sourceLine(src: Src): HTMLElement {
   return h('p', { class: 'small muted' }, `${t('source')}: `, srcLabel(src, state.lang));
 }
 
-type IconName = 'sun' | 'moon' | 'menu' | 'check' | 'lock' | 'arrow-right' | 'arrow-left' | 'print' | 'shield' | 'film' | 'compass';
+type IconName = 'sun' | 'moon' | 'menu' | 'check' | 'lock' | 'arrow-right' | 'arrow-left' | 'print' | 'shield' | 'film' | 'compass' | 'message';
 
 const PATHS: Record<IconName, string> = {
+  message: 'M21 11.5a8.5 8.5 0 0 1-8.5 8.5H3l2-5.5A8.5 8.5 0 1 1 21 11.5ZM8 10h8M8 14h5',
   sun: 'M12 4V2m0 20v-2m8-8h2M2 12h2m13.66-5.66 1.41-1.41M4.93 19.07l1.41-1.41m0-11.32L4.93 4.93m14.14 14.14-1.41-1.41M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z',
   moon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z',
   menu: 'M4 6h16M4 12h16M4 18h16',

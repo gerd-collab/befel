@@ -16,6 +16,7 @@ import { renderGlossary, renderModels } from './views/reference';
 import { renderJournal } from './views/journal';
 import { renderDiploma } from './views/diploma';
 import { renderAbout } from './views/about';
+import { feedbackButton } from './lib/feedback';
 
 const app = document.getElementById('app')!;
 
@@ -74,6 +75,7 @@ function header(current: string): HTMLElement {
       h(
         'div',
         { class: 'controls' },
+        feedbackButton(),
         h(
           'div',
           { class: 'seg', role: 'group', 'aria-label': t('language') },

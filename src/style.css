@@ -275,12 +275,12 @@ select {
 
 .menu-btn { display: none; }
 
-@media (max-width: 920px) {
+@media (max-width: 1200px) {
   .menu-btn { display: inline-grid; }
   .nav {
     display: none;
     position: absolute;
-    top: 64px;
+    top: 100%;
     left: 0;
     right: 0;
     flex-direction: column;
@@ -297,6 +297,87 @@ select {
   .wrap { padding: 0 16px; }
   .brand-sub { display: none; }
   .topbar .wrap { gap: 10px; }
+}
+
+/* Feedback stays visible outside the collapsible navigation, including embedded mode. */
+.viewer-feedback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: .85rem;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.viewer-feedback:hover { background: var(--accent-hover); }
+.viewer-feedback svg { flex: none; }
+@media (max-width: 720px) {
+  .viewer-feedback { width: 44px; padding: 8px; }
+  .viewer-feedback-label { display: none; }
+}
+@media (max-width: 520px) {
+  .topbar .wrap { flex-wrap: wrap; padding-top: 10px; padding-bottom: 10px; gap: 8px; }
+  .topbar .brand { flex: 1; }
+  .controls { display: contents; }
+  .controls .seg { order: 1; margin-left: auto; }
+  .controls .icon-btn { width: 44px; height: 44px; }
+}
+
+.fb-dialog {
+  width: min(580px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: auto;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--shadow-lg);
+}
+.fb-dialog::backdrop { background: #080e2466; backdrop-filter: blur(6px); }
+.fb-form, .fb-done { display: grid; gap: 14px; }
+.fb-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fb-head h2 { margin: 0; font-size: 1.5rem; }
+.fb-head .icon-btn { flex: none; }
+.fb-context, .fb-note, .fb-error { margin: 0; }
+.fb-kinds { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border: 0; padding: 0; margin: 0; }
+.fb-kinds legend { padding: 0; margin-bottom: 8px; font-weight: 600; }
+.fb-kind { position: relative; }
+.fb-kind input { position: absolute; opacity: 0; inset: 0; margin: 0; width: 100%; height: 100%; cursor: pointer; }
+.fb-kind > span { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; padding: 10px; border: 1px solid var(--border-strong); border-radius: 12px; font-size: .9rem; font-weight: 600; text-align: center; }
+.fb-kind input:checked + span { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.fb-kind input:focus-visible + span { box-shadow: var(--focus); }
+.fb-label { font-weight: 600; margin-bottom: -8px; }
+.fb-dialog textarea { width: 100%; min-height: 110px; resize: vertical; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--bg); }
+.fb-shot { display: grid; gap: 8px; }
+.fb-shot-img { width: 100%; max-height: 220px; object-fit: contain; border: 1px solid var(--border); border-radius: 10px; }
+.fb-shot-actions, .fb-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fb-actions { justify-content: flex-end; }
+.fb-shot-actions .btn, .fb-upload { font-size: .85rem; padding: 4px 8px; }
+.fb-upload { position: relative; color: var(--accent); font-weight: 600; text-decoration: underline; cursor: pointer; border-radius: 6px; }
+.fb-upload:focus-within { box-shadow: var(--focus); }
+.fb-upload:has(input:disabled) { opacity: .45; cursor: not-allowed; }
+.fb-note { font-size: .85rem; color: var(--muted); }
+.fb-error { color: var(--danger); font-size: .9rem; }
+.fb-reference { font-family: ui-monospace, monospace; user-select: all; letter-spacing: .04em; }
+.fb-done { text-align: center; }
+.fb-done .fb-actions { justify-content: center; }
+.fb-done h2, .fb-done p { margin: 0; }
+.fb-dialog [hidden] { display: none !important; }
+@media (max-width: 480px) {
+  .fb-dialog { padding: 18px; }
+  .fb-kinds { grid-template-columns: 1fr; }
+  .fb-actions .btn { flex: 1; }
 }
 
 /* ---------------------------------------------------------------- buttons */
