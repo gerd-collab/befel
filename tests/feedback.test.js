@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createHandler } from '../api/feedback.js';
 import { cleanReport, createLimiter, createTracker, issueDescription, MAX_IMAGE_BYTES } from '../server/feedback.js';
 
-const env = { FEEDBACK_BOT_EMAIL: 'bot@example.test', FEEDBACK_BOT_PASSWORD: 'test-secret', FEEDBACK_PROJECT_ID: 'befael-project' };
+const env = { FEEDBACK_BOT_EMAIL: 'bot@example.test', FEEDBACK_BOT_PASSWORD: 'test-secret', FEEDBACK_PROJECT_ID: 'befael-project', FEEDBACK_APP_ID: 'befael-app' };
 const image = `data:image/png;base64,${Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64').toString('base64')}`;
 const report = { category: 'bug', text: 'Der nächste Schritt öffnet sich nicht.', screenshot: image,
   context: { view: 'm01-inversion', title: 'Erwachsenenlogik', lang: 'de', theme: 'dark', journal: 'private journal', email: 'private@example.test' } };
@@ -70,6 +70,7 @@ test('full submission logs in, creates the issue and uploads the screenshot with
   assert.equal(calls[1].headers.Authorization, 'Bearer server-only-token');
   const issue = JSON.parse(calls[1].body);
   assert.equal(issue.category, 'bug');
+  assert.equal(issue.appId, 'befael-app');
   assert.match(issue.description, new RegExp(result.data.reference));
   assert.equal(calls[2].body.get('file').type, 'image/png');
   assert.doesNotMatch(JSON.stringify(result.data), /server-only-token|test-secret|bot@example/);
@@ -100,4 +101,56 @@ test('per-instance limiter expires its hourly allowance independently for each a
   assert.equal(limit('ip-1', 1000), false);
   assert.equal(limit('ip-2', 1000), true);
   assert.equal(limit('ip-1', 3601000), true);
+});
+
+test('bot credentials alone resolve the exact course project and app URL, with cached lookup', async () => {
+  const calls = [];
+  const submit = createTracker({
+    env: { FEEDBACK_BOT_EMAIL: env.FEEDBACK_BOT_EMAIL, FEEDBACK_BOT_PASSWORD: env.FEEDBACK_BOT_PASSWORD },
+    fetcher: async (url, init) => {
+      calls.push({ url, ...init });
+      if (url.endsWith('/auth/login')) return Response.json({ accessToken: 'bot-token' });
+      if (url.endsWith('/auth/me')) return Response.json({ projects: [
+        { id: 'cyber', name: 'Cyber Schooling' }, { id: 'course', name: 'Ta Befäl' },
+      ] });
+      if (url.endsWith('/projects/course/apps')) return Response.json({ data: [
+        { id: 'other-app', url: 'https://other.vercel.app' },
+        { id: 'course-app', url: 'https://befael.vercel.app/?lang=sv', active: true },
+        { id: 'retired-app', url: 'https://befael.vercel.app/', active: false },
+      ] });
+      if (url.endsWith('/projects/course/issues')) return Response.json({ data: { id: 'issue', number: 43 } });
+      throw new Error('Unexpected route');
+    },
+  });
+  const clean = cleanReport({ ...report, screenshot: null });
+  await submit(clean, 'FB-ABC234');
+  await submit(clean, 'FB-ABC235');
+  const issues = calls.filter((entry) => entry.url.endsWith('/issues'));
+  assert.equal(issues.length, 2);
+  for (const issue of issues) assert.equal(JSON.parse(issue.body).appId, 'course-app');
+  assert.equal(calls.filter((entry) => entry.url.endsWith('/auth/me')).length, 1);
+  assert.equal(calls.filter((entry) => entry.url.endsWith('/apps')).length, 1);
+});
+
+test('missing or ambiguous course/app never falls back to another project or unassigned issue', async () => {
+  for (const scenario of ['other-project-only', 'duplicate-project', 'missing-app', 'duplicate-app']) {
+    let posts = 0;
+    const submit = createTracker({
+      env: { FEEDBACK_BOT_EMAIL: env.FEEDBACK_BOT_EMAIL, FEEDBACK_BOT_PASSWORD: env.FEEDBACK_BOT_PASSWORD },
+      fetcher: async (url) => {
+        if (url.endsWith('/auth/login')) return Response.json({ accessToken: 'bot-token' });
+        if (url.endsWith('/auth/me')) return Response.json({ projects: scenario === 'other-project-only'
+          ? [{ id: 'cyber', name: 'Cyber Schooling' }]
+          : scenario === 'duplicate-project' ? [{ id: 'one', name: 'Ta Befäl' }, { id: 'two', name: 'Ta Befäl' }]
+            : [{ id: 'course', name: 'Ta Befäl' }] });
+        if (url.endsWith('/apps')) return Response.json({ data: scenario === 'duplicate-app'
+          ? [{ id: 'one', url: 'https://befael.vercel.app/' }, { id: 'two', url: 'https://befael.vercel.app/' }]
+          : [{ id: 'other', url: 'https://other.vercel.app/' }] });
+        posts++;
+        throw new Error('Must never create an issue');
+      },
+    });
+    await assert.rejects(() => submit(cleanReport(report), 'FB-ABC234'));
+    assert.equal(posts, 0, scenario);
+  }
 });

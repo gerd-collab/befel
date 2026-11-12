@@ -46,14 +46,15 @@ export function issueDescription(report, reference) {
 }
 
 export function feedbackConfigured(env = process.env) {
-  // Require an explicit target: never accidentally send course reports to CyberSchooling.
-  return Boolean(env.FEEDBACK_BOT_EMAIL && env.FEEDBACK_BOT_PASSWORD && env.FEEDBACK_PROJECT_ID);
+  return Boolean(env.FEEDBACK_BOT_EMAIL && env.FEEDBACK_BOT_PASSWORD);
 }
 
 /** Dependency injection keeps tests off the real tracker. Tokens live only on the server. */
 export function createTracker({ env = process.env, fetcher = fetch } = {}) {
   let token;
   let until = 0;
+  let destination;
+  let destinationUntil = 0;
   const base = () => (env.FEEDBACK_API_URL || 'https://ws.cyberschooling.eu/feedback/api/v1').replace(/\/+$/, '');
   async function call(path, init = {}, retried = false) {
     if (!token || Date.now() >= until) {
@@ -75,13 +76,42 @@ export function createTracker({ env = process.env, fetcher = fetch } = {}) {
     if (!response.ok) throw new Error(`Tracker request failed (${response.status})`);
     return response.json();
   }
+  async function target() {
+    if (destination && Date.now() < destinationUntil) return destination;
+    let projectId = env.FEEDBACK_PROJECT_ID;
+    if (!projectId) {
+      // Resolve only the explicitly named course project, never the bot's first/only project.
+      const wanted = (env.FEEDBACK_PROJECT_NAME || 'Ta Befäl').normalize('NFC').trim().toLowerCase();
+      const { projects } = await call('/auth/me');
+      const matches = Array.isArray(projects) ? projects.filter((project) =>
+        String(project.name || '').normalize('NFC').trim().toLowerCase() === wanted) : [];
+      if (matches.length !== 1 || !matches[0].id) throw new Error('Course project is missing or ambiguous');
+      projectId = matches[0].id;
+    }
+    let appId = env.FEEDBACK_APP_ID;
+    if (!appId) {
+      const { data: apps } = await call(`/projects/${encodeURIComponent(projectId)}/apps`);
+      const active = Array.isArray(apps) ? apps.filter((app) => app.active !== false) : [];
+      const matches = active.filter((app) => {
+        try { return new URL(app.url).hostname === 'befael.vercel.app'; }
+        catch { return false; }
+      });
+      // Refuse to create a report without a unique app assignment.
+      if (matches.length !== 1 || !matches[0].id) throw new Error('Course app is missing or ambiguous');
+      appId = matches[0].id;
+    }
+    destination = { projectId, appId };
+    destinationUntil = Date.now() + 10 * 60 * 1000;
+    return destination;
+  }
   return async (report, reference) => {
-    const { data: issue } = await call(`/projects/${encodeURIComponent(env.FEEDBACK_PROJECT_ID)}/issues`, {
+    const { projectId, appId } = await target();
+    const { data: issue } = await call(`/projects/${encodeURIComponent(projectId)}/issues`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: `Ta Befäl: ${oneLine(report.text.split('\n')[0], 90)}`,
         description: issueDescription(report, reference), category: report.category, priority: 'normal',
-        appId: env.FEEDBACK_APP_ID || undefined,
+        appId,
       }),
     });
     if (!issue?.id) throw new Error('Missing tracker receipt');
