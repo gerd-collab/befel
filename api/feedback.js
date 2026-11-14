@@ -48,7 +48,10 @@ export function createHandler({ env = process.env, submit = createTracker({ env 
     try {
       const result = await submit(report, newReference());
       return reply(res, 201, result);
-    } catch { return reply(res, 502, { error: 'tracker_unavailable' }); }
+    } catch (error) {
+      console.error('feedback failed:', error instanceof Error ? error.message : error);
+      return reply(res, 502, { error: 'tracker_unavailable' });
+    }
   };
 }
 
